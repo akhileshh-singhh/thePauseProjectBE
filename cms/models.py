@@ -17,7 +17,7 @@ class Host(models.Model):
     name = models.CharField(max_length=120)
     role = models.CharField(max_length=120)
     bio = models.TextField()
-    image = models.URLField(max_length=500)
+    image = models.ImageField(upload_to="hosts/", blank=True, null=True)
 
     class Meta:
         ordering = ["name"]
@@ -34,7 +34,7 @@ class WorkshopEvent(models.Model):
     end_time = models.TimeField(null=True, blank=True, help_text="Session end time")
     venue = models.CharField(max_length=255)
     price_display = models.CharField(max_length=32)
-    image = models.URLField(max_length=500)
+    image = models.ImageField(upload_to="events/", blank=True, null=True)
     booking_link = models.URLField(max_length=500)
     short_description = models.TextField()
     description = models.TextField()
@@ -59,7 +59,7 @@ class EventGalleryImage(models.Model):
     event = models.ForeignKey(
         WorkshopEvent, on_delete=models.CASCADE, related_name="gallery_images"
     )
-    image_url = models.URLField(max_length=500)
+    image = models.ImageField(upload_to="events/gallery/", blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -70,7 +70,7 @@ class EventGalleryImage(models.Model):
 
 
 class SiteGalleryImage(models.Model):
-    src = models.URLField(max_length=500)
+    src = models.ImageField(upload_to="gallery/", blank=True, null=True)
     alt = models.CharField(max_length=255)
     caption = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
