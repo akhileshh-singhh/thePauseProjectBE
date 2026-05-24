@@ -12,17 +12,9 @@ from .models import (
     Testimonial,
     WorkshopEvent,
 )
-from .utils import absolute_media_url
-
-
-class AbsoluteImageField(serializers.ImageField):
-    def to_representation(self, value):
-        return absolute_media_url(self.context.get("request"), value)
 
 
 class HostSerializer(serializers.ModelSerializer):
-    image = AbsoluteImageField(required=False, allow_null=True)
-
     class Meta:
         model = Host
         fields = ["id", "name", "role", "bio", "image"]
@@ -35,11 +27,9 @@ class EventCategorySerializer(serializers.ModelSerializer):
 
 
 class EventGalleryImageSerializer(serializers.ModelSerializer):
-    image = AbsoluteImageField()
-
     class Meta:
         model = EventGalleryImage
-        fields = ["id", "image", "sort_order"]
+        fields = ["id", "image_url", "sort_order"]
 
 
 class WorkshopEventPublicSerializer(serializers.ModelSerializer):
@@ -50,7 +40,6 @@ class WorkshopEventPublicSerializer(serializers.ModelSerializer):
     price = serializers.CharField(source="price_display")
     bookingLink = serializers.CharField(source="booking_link")
     shortDescription = serializers.CharField(source="short_description")
-    image = serializers.SerializerMethodField()
     gallery = serializers.SerializerMethodField()
     host = HostSerializer(read_only=True)
     category = serializers.CharField(source="category.name", read_only=True)
@@ -79,22 +68,18 @@ class WorkshopEventPublicSerializer(serializers.ModelSerializer):
     def get_time(self, obj: WorkshopEvent) -> str:
         return format_event_time(obj.start_time, obj.end_time)
 
-    def get_image(self, obj: WorkshopEvent) -> str:
-        return absolute_media_url(self.context.get("request"), obj.image)
-
     def get_gallery(self, obj: WorkshopEvent) -> list[str]:
-        request = self.context.get("request")
-        return [
-            absolute_media_url(request, row.image)
-            for row in obj.gallery_images.order_by("sort_order", "id")
-        ]
+        return list(
+            obj.gallery_images.order_by("sort_order", "id").values_list(
+                "image_url", flat=True
+            )
+        )
 
 
 class WorkshopEventAdminSerializer(serializers.ModelSerializer):
     gallery = EventGalleryImageSerializer(
-        source="gallery_images", many=True, read_only=True
+        source="gallery_images", many=True, required=False
     )
-    image = AbsoluteImageField(required=False, allow_null=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
 
     class Meta:
@@ -124,53 +109,39 @@ class WorkshopEventAdminSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at", "updated_at"]
 
-    def _gallery_files(self) -> list:
-        request = self.context.get("request")
-        if request is None:
-            return []
-        return request.FILES.getlist("gallery")
-
-    def _save_gallery(self, event: WorkshopEvent, replace: bool) -> None:
-        gallery_files = self._gallery_files()
-        if not replace:
+    def _save_gallery(self, event: WorkshopEvent, gallery_data: list | None) -> None:
+        if gallery_data is None:
             return
         event.gallery_images.all().delete()
-        for index, uploaded in enumerate(gallery_files):
+        for index, item in enumerate(gallery_data):
             EventGalleryImage.objects.create(
                 event=event,
-                image=uploaded,
-                sort_order=index,
+                image_url=item["image_url"],
+                sort_order=item.get("sort_order", index),
             )
 
     def create(self, validated_data: dict) -> WorkshopEvent:
-        replace_gallery = bool(self._gallery_files())
+        gallery_data = validated_data.pop("gallery_images", None)
         event = WorkshopEvent.objects.create(**validated_data)
-        self._save_gallery(event, replace_gallery)
+        self._save_gallery(event, gallery_data)
         return event
 
     def update(self, instance: WorkshopEvent, validated_data: dict) -> WorkshopEvent:
-        replace_gallery = bool(self._gallery_files())
+        gallery_data = validated_data.pop("gallery_images", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        self._save_gallery(instance, replace_gallery)
+        self._save_gallery(instance, gallery_data)
         return instance
 
 
 class SiteGalleryPublicSerializer(serializers.ModelSerializer):
-    src = serializers.SerializerMethodField()
-
     class Meta:
         model = SiteGalleryImage
         fields = ["src", "alt", "caption"]
 
-    def get_src(self, obj: SiteGalleryImage) -> str:
-        return absolute_media_url(self.context.get("request"), obj.src)
-
 
 class SiteGalleryAdminSerializer(serializers.ModelSerializer):
-    src = AbsoluteImageField(required=False, allow_null=True)
-
     class Meta:
         model = SiteGalleryImage
         fields = [

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-from cms.image_seed import assign_image_from_url
 from cms.parse_schedule import parse_event_date, parse_event_times
 from cms.models import (
     EventCategory,
@@ -60,16 +59,14 @@ class Command(BaseCommand):
                 defaults={"sort_order": index},
             )
             host_data = item["host"]
-            host, created = Host.objects.get_or_create(
+            host, _ = Host.objects.get_or_create(
                 name=host_data["name"],
                 defaults={
                     "role": host_data["role"],
                     "bio": host_data["bio"],
+                    "image": host_data["image"],
                 },
             )
-            if created or not host.image:
-                if assign_image_from_url(host, "image", host_data["image"]):
-                    host.save(update_fields=["image"])
             start_time, end_time = parse_event_times(item["time"])
             event, created = WorkshopEvent.objects.update_or_create(
                 slug=item["slug"],
@@ -80,6 +77,7 @@ class Command(BaseCommand):
                     "end_time": end_time,
                     "venue": item["venue"],
                     "price_display": item["price"],
+                    "image": item["image"],
                     "booking_link": item["bookingLink"],
                     "short_description": item["shortDescription"],
                     "description": item["description"],
@@ -92,13 +90,11 @@ class Command(BaseCommand):
             )
             if created:
                 self.stdout.write(f"  + event {event.slug}")
-            if assign_image_from_url(event, "image", item["image"]):
-                event.save(update_fields=["image"])
             event.gallery_images.all().delete()
             for g_index, url in enumerate(item.get("gallery", [])):
-                row = EventGalleryImage(event=event, sort_order=g_index)
-                if assign_image_from_url(row, "image", url):
-                    row.save()
+                EventGalleryImage.objects.create(
+                    event=event, image_url=url, sort_order=g_index
+                )
 
     def _seed_gallery(self) -> None:
         path = DATA_DIR / "gallery.json"
@@ -106,16 +102,15 @@ class Command(BaseCommand):
             return
         images = json.loads(path.read_text())
         for index, item in enumerate(images):
-            row, _ = SiteGalleryImage.objects.update_or_create(
-                alt=item["alt"],
+            SiteGalleryImage.objects.update_or_create(
+                src=item["src"],
                 defaults={
+                    "alt": item["alt"],
                     "caption": item.get("caption", ""),
                     "sort_order": index,
                     "is_published": True,
                 },
             )
-            if assign_image_from_url(row, "src", item["src"]):
-                row.save(update_fields=["src"])
 
     def _seed_testimonials(self) -> None:
         path = DATA_DIR / "testimonials.json"
