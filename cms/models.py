@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class EventCategory(models.Model):
     name = models.CharField(max_length=64, unique=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -17,7 +16,8 @@ class Host(models.Model):
     name = models.CharField(max_length=120)
     role = models.CharField(max_length=120)
     bio = models.TextField()
-    image = models.URLField(max_length=500)
+    # ✅ Changed from URLField to ImageField
+    image = models.ImageField(upload_to="hosts/")
 
     class Meta:
         ordering = ["name"]
@@ -34,7 +34,8 @@ class WorkshopEvent(models.Model):
     end_time = models.TimeField(null=True, blank=True, help_text="Session end time")
     venue = models.CharField(max_length=255)
     price_display = models.CharField(max_length=32)
-    image = models.URLField(max_length=500)
+    # ✅ Changed from URLField to ImageField
+    image = models.ImageField(upload_to="events/")
     booking_link = models.URLField(max_length=500)
     short_description = models.TextField()
     description = models.TextField()
@@ -59,7 +60,7 @@ class EventGalleryImage(models.Model):
     event = models.ForeignKey(
         WorkshopEvent, on_delete=models.CASCADE, related_name="gallery_images"
     )
-    image_url = models.URLField(max_length=500)
+    image_url = models.ImageField(upload_to="event_gallery/")
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -70,7 +71,8 @@ class EventGalleryImage(models.Model):
 
 
 class SiteGalleryImage(models.Model):
-    src = models.URLField(max_length=500)
+    # ✅ Changed from URLField to ImageField
+    src = models.ImageField(upload_to="site_gallery/")
     alt = models.CharField(max_length=255)
     caption = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -127,8 +129,6 @@ class SocialLink(models.Model):
 
 
 class SiteSettings(models.Model):
-    """Singleton site-wide copy and SEO defaults."""
-
     site_name = models.CharField(max_length=120, default="The Pause Project")
     metadata_base_url = models.URLField(
         max_length=500, blank=True, default="https://thepauseproject.in"

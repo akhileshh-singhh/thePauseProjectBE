@@ -1,16 +1,26 @@
-# The Pause Project — Django API (MySQL)
+# The Pause Project — Django API (PostgreSQL)
 
 REST API for workshops, gallery, testimonials, site settings, and contact messages.
 
-## 1. Start MySQL
+## 1. Configure database
 
-From the project root:
+Preferred setup is PostgreSQL using `DATABASE_URL`.
 
-```bash
-docker compose up -d
+Set in `backend/.env`:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
+DB_SSL_REQUIRE=true
+USE_SQLITE=false
 ```
 
-This creates database `pause_project` with user `pause` / password `pausepass` (root password: `rootpass`).
+For local Postgres without SSL:
+
+```env
+DB_SSL_REQUIRE=false
+```
+
+MySQL fallback still works when `DATABASE_URL` is not set.
 
 ## 2. Configure backend
 

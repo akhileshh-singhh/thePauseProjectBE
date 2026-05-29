@@ -69,12 +69,13 @@ WSGI_APPLICATION = "config.wsgi.application"
 import dj_database_url
 
 USE_SQLITE = os.getenv("USE_SQLITE", "false").lower() in ("1", "true", "yes")
+DB_SSL_REQUIRE = os.getenv("DB_SSL_REQUIRE", "true").lower() in ("1", "true", "yes")
 
 if os.getenv("DATABASE_URL"):
     DATABASES = {
         "default": dj_database_url.config(
             conn_max_age=600,
-            ssl_require=True
+            ssl_require=DB_SSL_REQUIRE,
         )
     }
 elif USE_SQLITE:

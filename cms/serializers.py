@@ -1,5 +1,4 @@
 from rest_framework import serializers
-
 from .event_format import format_event_date, format_event_time
 from .models import (
     ContactMessage,
@@ -15,9 +14,18 @@ from .models import (
 
 
 class HostSerializer(serializers.ModelSerializer):
+    # ✅ Resolve to absolute asset string URLs
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = Host
         fields = ["id", "name", "role", "bio", "image"]
+
+    def get_image(self, obj) -> str | None:
+        if obj.image:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
 
 
 class EventCategorySerializer(serializers.ModelSerializer):
@@ -27,14 +35,22 @@ class EventCategorySerializer(serializers.ModelSerializer):
 
 
 class EventGalleryImageSerializer(serializers.ModelSerializer):
+    # ✅ Resolve to absolute asset string URLs
+    image_url = serializers.SerializerMethodField()
+    image_file = serializers.ImageField(source="image_url", write_only=True, required=False)
+
     class Meta:
         model = EventGalleryImage
-        fields = ["id", "image_url", "sort_order"]
+        fields = ["id", "image_url", "image_file", "sort_order"]
+
+    def get_image_url(self, obj) -> str | None:
+        if obj.image_url:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image_url.url) if request else obj.image_url.url
+        return None
 
 
 class WorkshopEventPublicSerializer(serializers.ModelSerializer):
-    """Matches the Next.js WorkshopEvent type."""
-
     date = serializers.SerializerMethodField()
     time = serializers.SerializerMethodField()
     price = serializers.CharField(source="price_display")
@@ -43,6 +59,8 @@ class WorkshopEventPublicSerializer(serializers.ModelSerializer):
     gallery = serializers.SerializerMethodField()
     host = HostSerializer(read_only=True)
     category = serializers.CharField(source="category.name", read_only=True)
+    # ✅ Resolve main image to absolute string URL
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkshopEvent
@@ -62,6 +80,12 @@ class WorkshopEventPublicSerializer(serializers.ModelSerializer):
             "category",
         ]
 
+    def get_image(self, obj) -> str | None:
+        if obj.image:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
+
     def get_date(self, obj: WorkshopEvent) -> str:
         return format_event_date(obj.event_date)
 
@@ -69,11 +93,14 @@ class WorkshopEventPublicSerializer(serializers.ModelSerializer):
         return format_event_time(obj.start_time, obj.end_time)
 
     def get_gallery(self, obj: WorkshopEvent) -> list[str]:
-        return list(
-            obj.gallery_images.order_by("sort_order", "id").values_list(
-                "image_url", flat=True
-            )
-        )
+        request = self.context.get('request')
+        images = obj.gallery_images.order_by("sort_order", "id")
+        urls = []
+        for img in images:
+            if img.image_url:
+                url = request.build_absolute_uri(img.image_url.url) if request else img.image_url.url
+                urls.append(url)
+        return urls
 
 
 class WorkshopEventAdminSerializer(serializers.ModelSerializer):
@@ -81,6 +108,9 @@ class WorkshopEventAdminSerializer(serializers.ModelSerializer):
         source="gallery_images", many=True, required=False
     )
     category_name = serializers.CharField(source="category.name", read_only=True)
+    # ✅ Resolve to absolute asset string URLs
+    image = serializers.SerializerMethodField()
+    image_file = serializers.ImageField(source="image", write_only=True, required=False)
 
     class Meta:
         model = WorkshopEvent
@@ -94,6 +124,7 @@ class WorkshopEventAdminSerializer(serializers.ModelSerializer):
             "venue",
             "price_display",
             "image",
+            "image_file",
             "booking_link",
             "short_description",
             "description",
@@ -108,6 +139,12 @@ class WorkshopEventAdminSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+    def get_image(self, obj) -> str | None:
+        if obj.image:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
 
     def _save_gallery(self, event: WorkshopEvent, gallery_data: list | None) -> None:
         if gallery_data is None:
@@ -136,22 +173,42 @@ class WorkshopEventAdminSerializer(serializers.ModelSerializer):
 
 
 class SiteGalleryPublicSerializer(serializers.ModelSerializer):
+    # ✅ Resolve to absolute asset string URLs
+    src = serializers.SerializerMethodField()
+
     class Meta:
         model = SiteGalleryImage
         fields = ["src", "alt", "caption"]
 
+    def get_src(self, obj) -> str | None:
+        if obj.src:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.src.url) if request else obj.src.url
+        return None
+
 
 class SiteGalleryAdminSerializer(serializers.ModelSerializer):
+    # ✅ Resolve to absolute asset string URLs
+    src = serializers.SerializerMethodField()
+    src_file = serializers.ImageField(source="src", write_only=True, required=False)
+
     class Meta:
         model = SiteGalleryImage
         fields = [
             "id",
             "src",
+            "src_file",
             "alt",
             "caption",
             "sort_order",
             "is_published",
         ]
+
+    def get_src(self, obj) -> str | None:
+        if obj.src:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.src.url) if request else obj.src.url
+        return None
 
 
 class TestimonialPublicSerializer(serializers.ModelSerializer):
