@@ -1,3 +1,4 @@
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -46,11 +47,12 @@ class PublicEventViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, views
         return WorkshopEventPublicSerializer
 
 
+
+
 class AdminEventViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
-    queryset = WorkshopEvent.objects.select_related("category", "host").prefetch_related(
-        "gallery_images"
-    )
+    parser_classes = [MultiPartParser, FormParser]          # ← add this
+    queryset = WorkshopEvent.objects.select_related("category", "host").prefetch_related("gallery_images")
     serializer_class = WorkshopEventAdminSerializer
     lookup_field = "slug"
 
@@ -65,6 +67,7 @@ class PublicGalleryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 class AdminGalleryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser, FormParser]          # ← add this
     queryset = SiteGalleryImage.objects.all()
     serializer_class = SiteGalleryAdminSerializer
 
@@ -85,6 +88,7 @@ class AdminTestimonialViewSet(viewsets.ModelViewSet):
 
 class HostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser, FormParser]          # ← add this
     queryset = Host.objects.all()
     serializer_class = HostSerializer
 

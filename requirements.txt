@@ -8,3 +8,5 @@ PyMySQL>=1.1,<2
 psycopg2-binary>=2.9.0
 dj-database-url>=2.0.0
 gunicorn>=21.0.0
+cloudinary>=1.36,<2
+django-cloudinary-storage>=0.3,<1

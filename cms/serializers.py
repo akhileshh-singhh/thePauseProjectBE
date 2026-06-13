@@ -14,12 +14,12 @@ from .models import (
 
 
 class HostSerializer(serializers.ModelSerializer):
-    # ✅ Resolve to absolute asset string URLs
     image = serializers.SerializerMethodField()
+    image_file = serializers.ImageField(source="image", write_only=True, required=False)
 
     class Meta:
         model = Host
-        fields = ["id", "name", "role", "bio", "image"]
+        fields = ["id", "name", "role", "bio", "image", "image_file"]
 
     def get_image(self, obj) -> str | None:
         if obj.image:
