@@ -187,3 +187,15 @@ class AdminMeView(APIView):
                 "is_superuser": user.is_superuser,
             }
         )
+
+class DebugEnvView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        import os
+        from django.conf import settings
+        return Response({
+            "CLOUDINARY_CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", "NOT SET"),
+            "DEFAULT_FILE_STORAGE": getattr(settings, "DEFAULT_FILE_STORAGE", "NOT SET"),
+            "INSTALLED_APPS_has_cloudinary": "cloudinary_storage" in settings.INSTALLED_APPS,
+        })

@@ -40,4 +40,5 @@ urlpatterns = [
     path("admin/stats/", views.AdminStatsView.as_view(), name="admin-stats"),
     path("admin/", include(admin_router.urls)),
     path("admin/site/", views.SiteSettingsView.as_view(), name="admin-site-settings"),
+    path("debug/", views.DebugEnvView.as_view(), name="debug-env"),
 ]
