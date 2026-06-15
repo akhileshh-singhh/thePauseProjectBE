@@ -147,8 +147,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
-import cloudinary
-
 # Cloudinary (used on Render; falls back to local media in dev)
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_API_KEY    = os.getenv("CLOUDINARY_API_KEY", "")
@@ -161,4 +159,11 @@ if CLOUDINARY_CLOUD_NAME:
         "API_KEY":    CLOUDINARY_API_KEY,
         "API_SECRET": CLOUDINARY_API_SECRET,
     }
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
